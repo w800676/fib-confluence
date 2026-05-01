@@ -256,7 +256,7 @@ async function fetchFinMind(symbol){
   if(!token) throw new Error('請先設定 FinMind token');
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - 3);
+  startDate.setMonth(startDate.getMonth() - 5);
   const fmt = d => d.toISOString().slice(0,10);
   const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${symbol}&start_date=${fmt(startDate)}&end_date=${fmt(endDate)}&token=${encodeURIComponent(token)}`;
   const res = await fetch(url);
