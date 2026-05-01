@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0908">
+<title>Fib 多重確認 ・ 台股精算 1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0908;
+  --bg-card:#15120e;
+  --bg-elev:#1f1a13;
+  --gold:#d4a942;
+  --gold-bright:#f5c863;
+  --gold-dim:#8a6d2a;
+  --red:#e94f4f;
+  --green:#3ecf8e;
+  --text:#e8e3d6;
+  --text-dim:#8b8470;
+  --border:#2a2419;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Serif TC',serif;min-height:100vh;overflow-x:hidden}
+body{
+  background:
+    radial-gradient(ellipse at top, rgba(212,169,66,.08), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(212,169,66,.03), transparent 50%),
+    var(--bg);
+  padding:20px 16px 60px;
+  font-size:16px;
+  line-height:1.6;
+}
+.mono{font-family:'JetBrains Mono',monospace}
+.brand{
+  text-align:center;
+  letter-spacing:.4em;
+  font-size:11px;
+  color:var(--text-dim);
+  margin-bottom:6px;
+  padding-top:12px;
+}
+h1{
+  text-align:center;
+  font-weight:900;
+  font-size:30px;
+  background:linear-gradient(180deg,var(--gold-bright),var(--gold-dim));
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  letter-spacing:.05em;
+  margin-bottom:4px;
+}
+.subtitle{
+  text-align:center;
+  color:var(--text-dim);
+  font-size:13px;
+  margin-bottom:24px;
+}
+.subtitle::before,.subtitle::after{content:"━ ";color:var(--gold-dim)}
+.subtitle::after{content:" ━"}
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:22px 18px;
+  margin-bottom:16px;
+  box-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+.card-title{
+  font-weight:700;
+  font-size:14px;
+  color:var(--gold);
+  letter-spacing:.15em;
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.card-title::before{
+  content:"";display:inline-block;width:4px;height:16px;
+  background:var(--gold);border-radius:2px;
+}
+label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;letter-spacing:.1em}
+input[type="text"],input[type="password"]{
+  width:100%;
+  background:var(--bg-elev);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 16px;
+  color:var(--gold-bright);
+  font-family:'JetBrains Mono',monospace;
+  font-size:20px;
+  text-align:center;
+  letter-spacing:.3em;
+  outline:none;
+  transition:all .2s;
+}
+input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,169,66,.15)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{
+  background:var(--bg-elev);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  padding:6px 10px;
+  border-radius:6px;
+  font-size:12px;
+  font-family:'JetBrains Mono',monospace;
+  cursor:pointer;
+  transition:all .15s;
+}
+.chip:active{background:var(--gold-dim);color:var(--bg);border-color:var(--gold)}
+button.go{
+  width:100%;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold));
+  color:var(--bg);
+  border:none;
+  border-radius:12px;
+  padding:18px;
+  font-family:'Noto Serif TC',serif;
+  font-weight:900;
+  font-size:18px;
+  letter-spacing:.3em;
+  cursor:pointer;
+  margin-top:18px;
+  box-shadow:0 4px 20px rgba(212,169,66,.3);
+  transition:all .2s;
+}
+button.go:active{transform:translateY(1px);box-shadow:0 2px 10px rgba(212,169,66,.3)}
+button.go:disabled{background:var(--bg-elev);color:var(--text-dim);box-shadow:none;cursor:wait}
+.status{text-align:center;color:var(--text-dim);font-size:13px;margin:12px 0;min-height:20px}
+.status.error{color:var(--red)}
+.spinner{
+  display:inline-block;width:14px;height:14px;border:2px solid var(--gold-dim);
+  border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;
+  vertical-align:-2px;margin-right:6px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#result{display:none;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.verdict{
+  text-align:center;padding:20px;border-radius:12px;
+  font-weight:900;font-size:20px;letter-spacing:.15em;margin-bottom:16px;
+  border:1px solid;
+}
+.verdict.alert{background:linear-gradient(135deg,rgba(233,79,79,.15),rgba(212,169,66,.1));border-color:var(--red);color:var(--red)}
+.verdict.watch{background:rgba(212,169,66,.1);border-color:var(--gold);color:var(--gold-bright)}
+.verdict.neutral{background:var(--bg-elev);border-color:var(--border);color:var(--text-dim)}
+.kv{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--border)}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--text-dim);font-size:13px}
+.kv .v{font-family:'JetBrains Mono',monospace;color:var(--gold-bright);font-weight:700}
+.fib-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:14px}
+.fib-table th{text-align:left;padding:8px 6px;color:var(--text-dim);font-weight:400;font-size:11px;letter-spacing:.15em;border-bottom:1px solid var(--border)}
+.fib-table th:not(:first-child){text-align:right}
+.fib-table td{padding:10px 6px;border-bottom:1px solid var(--border)}
+.fib-table td:not(:first-child){text-align:right}
+.fib-table tr.key td{background:rgba(212,169,66,.05)}
+.fib-table tr.nearest td{background:rgba(212,169,66,.15);color:var(--gold-bright);font-weight:700}
+.dist-pos{color:var(--green)}
+.dist-neg{color:var(--red)}
+.sig{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg-elev);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--border)}
+.sig.on{border-left-color:var(--green)}
+.sig-icon{font-size:18px;flex-shrink:0}
+.sig-body{flex:1}
+.sig-name{font-weight:700;color:var(--text);font-size:14px}
+.sig-detail{color:var(--text-dim);font-size:12px;margin-top:2px}
+.sig.on .sig-name{color:var(--green)}
+.score{display:inline-block;padding:4px 12px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;background:var(--bg-elev);border:1px solid var(--border);margin-left:auto}
+.score.s2{color:var(--gold);border-color:var(--gold-dim)}
+.score.s3,.score.s4{color:var(--red);border-color:var(--red);background:rgba(233,79,79,.1)}
+.setup-grid{display:grid;grid-template-columns:1fr;gap:1px;background:var(--border);border-radius:10px;overflow:hidden}
+.setup-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg-elev)}
+.setup-row .lbl{display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:13px}
+.setup-row .val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px;color:var(--gold-bright)}
+.setup-row .sub{color:var(--text-dim);font-size:11px;margin-left:6px}
+.setup-row.stop .val{color:var(--red)}
+.setup-row.tp .val{color:var(--green)}
+.rr-banner{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:linear-gradient(135deg,rgba(62,207,142,.1),rgba(212,169,66,.05));border-radius:10px;margin-bottom:14px;border:1px solid var(--gold-dim)}
+.rr-banner .dir{font-weight:900;font-size:18px;letter-spacing:.1em}
+.rr-banner .dir.long{color:var(--green)}
+.rr-banner .dir.short{color:var(--red)}
+.rr-banner .rr{font-family:'JetBrains Mono',monospace;color:var(--gold);font-weight:700;font-size:18px}
+.notes{margin-top:14px;padding:12px;background:rgba(212,169,66,.06);border-left:3px solid var(--gold);border-radius:6px;font-size:13px;color:var(--text);line-height:1.7}
+footer{text-align:center;color:var(--text-dim);font-size:11px;margin-top:30px;letter-spacing:.1em}
+footer a{color:var(--gold-dim)}
+.token-box{margin-top:16px;padding:12px;background:var(--bg-elev);border-radius:8px;border:1px solid var(--border)}
+.token-box summary{cursor:pointer;color:var(--text-dim);font-size:13px;padding:4px}
+.btn-mini{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-elev);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer;letter-spacing:.1em}
+.btn-mini.save{background:var(--gold-dim);color:var(--bg);border-color:var(--gold);font-weight:700}
+.btn-mini.save:active{background:var(--gold)}
+.btn-mini.clear:active{background:var(--red);color:#fff;border-color:var(--red)}
+.hint{font-size:11px;color:var(--text-dim);margin-top:10px;line-height:1.6}
+.hint a{color:var(--gold);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="brand">FIB CONFLUENCE LAB</div>
+<h1>黃金分割精算</h1>
+<div class="subtitle">Fib + 多重確認 ・ 台股 1.0</div>
+<div class="card">
+  <div class="card-title">輸入標的</div>
+  <label>股票代號(4 碼)</label>
+  <input id="symbol" type="text" inputmode="numeric" maxlength="4" placeholder="2330" autocomplete="off">
+  <div class="chips" id="chips">
+    <span class="chip" data-s="2330">2330 台積電</span>
+    <span class="chip" data-s="2317">2317 鴻海</span>
+    <span class="chip" data-s="2454">2454 聯發科</span>
+    <span class="chip" data-s="2603">2603 長榮</span>
+    <span class="chip" data-s="2882">2882 國泰金</span>
+  </div>
+  <button class="go" id="goBtn">開 始 精 算</button>
+  <div class="status" id="status"></div>
+  <details class="token-box" id="tokenBox">
+    <summary>🔑 FinMind Token <span id="tokenStatus"></span></summary>
+    <label style="margin-top:12px">FinMind API Token(只存在你手機本地)</label>
+    <input id="tokenInput" type="password" placeholder="貼上你的 token..." autocomplete="off" style="text-align:left;letter-spacing:0;font-size:12px">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn-mini save" id="saveToken">儲存</button>
+      <button class="btn-mini clear" id="clearToken">清除</button>
+    </div>
+    <p class="hint">沒有 token?到 <a href="https://finmindtrade.com" target="_blank">finmindtrade.com</a> 註冊免費帳號 → 個人專區複製 API Token</p>
+  </details>
+</div>
+<div id="result"></div>
+<footer>
+  Fib Confluence Lab v1.0 ・ 數據來源:FinMind<br>
+  本工具僅供技術分析參考,不構成投資建議
+</footer>
+<script>
+const FIB_RATIOS = [0.236, 0.382, 0.5, 0.618, 0.786];
+const KEY_LEVELS = new Set([0.382, 0.5, 0.618]);
+const LOOKBACK = 120;
+const PROXIMITY_PCT = 1.5;
+const MA_CONFLUENCE_PCT = 2.0;
+const ALERT_THRESHOLD = 2;
+const TOKEN_KEY = 'finmind_token';
+function getToken(){ return localStorage.getItem(TOKEN_KEY) || ''; }
+function setToken(t){ localStorage.setItem(TOKEN_KEY, t); }
+function clearTokenFn(){ localStorage.removeItem(TOKEN_KEY); }
+function updateTokenStatus(){
+  const t = getToken();
+  const el = document.getElementById('tokenStatus');
+  if(t){
+    el.textContent = ` ✓ 已儲存 (${t.slice(0,6)}...${t.slice(-4)})`;
+    el.style.color = '#3ecf8e';
+  }else{
+    el.textContent = ' ✗ 未設定';
+    el.style.color = '#e94f4f';
+  }
+}
+async function fetchFinMind(symbol){
+  const token = getToken();
+  if(!token) throw new Error('請先設定 FinMind token');
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - 8);
+  const fmt = d => d.toISOString().slice(0,10);
+  const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${symbol}&start_date=${fmt(startDate)}&end_date=${fmt(endDate)}&token=${encodeURIComponent(token)}`;
+  const res = await fetch(url);
+  if(!res.ok){
+    if(res.status === 402) throw new Error('Token 額度用完');
+    if(res.status === 401) throw new Error('Token 無效');
+    throw new Error(`API 錯誤 (${res.status})`);
+  }
+  const json = await res.json();
+  if(json.status !== 200) throw new Error(json.msg || '查詢失敗');
+  if(!json.data || json.data.length === 0) throw new Error('查無資料,請確認股票代號');
+  return json.data.map(r => ({
+    date: r.date, open: r.open, high: r.max, low: r.min, close: r.close, volume: r.Trading_Volume,
+  })).sort((a,b) => a.date.localeCompare(b.date));
+}
+function ema(arr, span){
+  const k = 2/(span+1);
+  const out = [arr[0]];
+  for(let i=1;i<arr.length;i++) out.push(arr[i]*k + out[i-1]*(1-k));
+  return out;
+}
+function rsi(closes, period=14){
+  const out = new Array(closes.length).fill(NaN);
+  if(closes.length < period+1) return out;
+  let gains=0, losses=0;
+  for(let i=1;i<=period;i++){
+    const d = closes[i]-closes[i-1];
+    if(d>=0) gains+=d; else losses-=d;
+  }
+  let avgG = gains/period, avgL = losses/period;
+  out[period] = 100 - 100/(1 + avgG/(avgL||1e-9));
+  for(let i=period+1;i<closes.length;i++){
+    const d = closes[i]-closes[i-1];
+    const g = d>=0 ? d : 0;
+    const l = d<0 ? -d : 0;
+    avgG = (avgG*(period-1)+g)/period;
+    avgL = (avgL*(period-1)+l)/period;
+    out[i] = 100 - 100/(1 + avgG/(avgL||1e-9));
+  }
+  return out;
+}
+function sma(arr, w){
+  const out = new Array(arr.length).fill(NaN);
+  let sum = 0;
+  for(let i=0;i<arr.length;i++){
+    sum += arr[i];
+    if(i>=w) sum -= arr[i-w];
+    if(i>=w-1) out[i] = sum/w;
+  }
+  return out;
+}
+function atr(rows, p=14){
+  const trs = [];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i], pr=rows[i-1];
+    trs.push(Math.max(r.high-r.low, Math.abs(r.high-pr.close), Math.abs(r.low-pr.close)));
+  }
+  if(trs.length<p) return 0;
+  const recent = trs.slice(-p);
+  return recent.reduce((a,b)=>a+b,0)/p;
+}
+function klineSignal(rows){
+  if(rows.length<2) return [false,''];
+  const last = rows[rows.length-1], prev = rows[rows.length-2];
+  const {open:o, high:h, low:l, close:c} = last;
+  const {open:po, close:pc} = prev;
+  const body = Math.abs(c-o), rng = h-l;
+  if(rng===0) return [false,''];
+  if(body/rng < 0.1) return [true,'十字星(多空猶豫)'];
+  const up = h-Math.max(o,c), dn = Math.min(o,c)-l;
+  if(dn>body*2 && up<body && c>o) return [true,'錘子線(下影長,反彈訊號)'];
+  if(up>body*2 && dn<body && c<o) return [true,'流星線(上影長,回檔訊號)'];
+  if(pc<po && c>o && c>po && o<pc) return [true,'看漲吞噬'];
+  if(pc>po && c<o && c<po && o>pc) return [true,'看跌吞噬'];
+  return [false,'無顯著反轉型態'];
+}
+function divergence(rows, trend){
+  if(rows.length<25) return [false,''];
+  const closes = rows.map(r=>r.close);
+  const r = rsi(closes);
+  const win = rows.slice(-20);
+  const a = win.slice(0,10), b = win.slice(10);
+  const aR = a.map((_,i)=>r[r.length-20+i]).filter(x=>!isNaN(x));
+  const bR = b.map((_,i)=>r[r.length-10+i]).filter(x=>!isNaN(x));
+  if(aR.length===0 || bR.length===0) return [false,''];
+  if(trend==='up'){
+    const aMaxC = Math.max(...a.map(x=>x.close));
+    const bMaxC = Math.max(...b.map(x=>x.close));
+    if(bMaxC>aMaxC){
+      const aMaxR = Math.max(...aR), bMaxR = Math.max(...bR);
+      if(bMaxR<aMaxR) return [true,`RSI 頂背離 (${aMaxR.toFixed(1)}→${bMaxR.toFixed(1)})`];
+    }
+  }else{
+    const aMinC = Math.min(...a.map(x=>x.close));
+    const bMinC = Math.min(...b.map(x=>x.close));
+    if(bMinC<aMinC){
+      const aMinR = Math.min(...aR), bMinR = Math.min(...bR);
+      if(bMinR>aMinR) return [true,`RSI 底背離 (${aMinR.toFixed(1)}→${bMinR.toFixed(1)})`];
+    }
+  }
+  return [false,'無明顯背離'];
+}
+function maConfluence(rows, nearPrice){
+  if(rows.length<60 || nearPrice==null) return [false,''];
+  const closes = rows.map(r=>r.close);
+  const ma20 = sma(closes,20).slice(-1)[0];
+  const ma60 = sma(closes,60).slice(-1)[0];
+  const hits = [];
+  if(Math.abs(ma20-nearPrice)/nearPrice*100 < MA_CONFLUENCE_PCT) hits.push(`MA20(${ma20.toFixed(2)})`);
+  if(Math.abs(ma60-nearPrice)/nearPrice*100 < MA_CONFLUENCE_PCT) hits.push(`MA60(${ma60.toFixed(2)})`);
+  return hits.length ? [true, hits.join('、')] : [false,'均線未與 Fib 位重疊'];
+}
+function volumeSignal(rows, trend){
+  if(rows.length<25) return [false,''];
+  const vols = rows.map(r=>r.volume);
+  const vMA = sma(vols,20).slice(-1)[0];
+  const lastV = vols[vols.length-1];
+  const preV = vols.slice(-5,-1).reduce((a,b)=>a+b,0)/4;
+  const last = rows[rows.length-1];
+  const contracted = preV < vMA*0.9;
+  if(trend==='up' && contracted && lastV > vMA*1.3 && last.close > last.open){
+    return [true, `回檔量縮+反彈出量 (${(lastV/vMA).toFixed(1)}x 均量)`];
+  }
+  if(trend==='down' && contracted && lastV > vMA*1.3 && last.close < last.open){
+    return [true, `反彈量縮+下殺出量 (${(lastV/vMA).toFixed(1)}x 均量)`];
+  }
+  return [false,'量價未呈典型轉折型態'];
+}
+function analyze(rows, lookback=LOOKBACK){
+  if(rows.length<60) throw new Error(`資料不足(只有 ${rows.length} 筆,至少需要 60 筆)`);
+  const win = rows.slice(-lookback);
+  let hi = -Infinity, lo = Infinity, hiIdx=0, loIdx=0;
+  win.forEach((r,i)=>{
+    if(r.high>hi){hi=r.high; hiIdx=i}
+    if(r.low<lo){lo=r.low; loIdx=i}
+  });
+  const trend = hiIdx > loIdx ? 'up' : 'down';
+  const cur = rows[rows.length-1].close;
+  const diff = hi - lo;
+  const levels = FIB_RATIOS.map(r=>{
+    const price = trend==='up' ? hi - diff*r : lo + diff*r;
+    return {ratio:r, price, distPct:(cur-price)/price*100, isKey:KEY_LEVELS.has(r)};
+  });
+  const nearest = levels.reduce((a,b)=>Math.abs(a.distPct)<Math.abs(b.distPct)?a:b);
+  const nearKey = nearest.isKey && Math.abs(nearest.distPct) <= PROXIMITY_PCT;
+  const sigs = [
+    {name:'K 線反轉型態', ...((([t,d])=>({on:t,detail:d}))(klineSignal(rows)))},
+    {name:'RSI 動能背離', ...((([t,d])=>({on:t,detail:d}))(divergence(rows,trend)))},
+    {name:'均線匯流', ...((([t,d])=>({on:t,detail:d}))(maConfluence(rows, nearKey?nearest.price:null)))},
+    {name:'成交量驗證', ...((([t,d])=>({on:t,detail:d}))(volumeSignal(rows,trend)))},
+  ];
+  const score = sigs.filter(s=>s.on).length;
+  let setup = null;
+  if(nearKey){
+    const sortedLv = [...levels].sort((a,b)=>a.ratio-b.ratio);
+    const idx = sortedLv.findIndex(l=>l.ratio===nearest.ratio);
+    const atrV = atr(rows);
+    const buf = Math.max(atrV*0.5, cur*0.005);
+    let entryLo, entryHi, stop, tp1, tp2, tp3, dir;
+    if(trend==='up'){
+      dir='long';
+      entryLo = nearest.price*0.995;
+      entryHi = Math.max(cur, nearest.price*1.005);
+      stop = (idx<sortedLv.length-1 ? sortedLv[idx+1].price : lo) - buf;
+      tp1 = idx>0 ? sortedLv[idx-1].price : nearest.price+diff*0.236;
+      tp2 = hi;
+      tp3 = hi + diff*0.272;
+    }else{
+      dir='short';
+      entryLo = Math.min(cur, nearest.price*0.995);
+      entryHi = nearest.price*1.005;
+      stop = (idx<sortedLv.length-1 ? sortedLv[idx+1].price : hi) + buf;
+      tp1 = idx>0 ? sortedLv[idx-1].price : nearest.price-diff*0.236;
+      tp2 = lo;
+      tp3 = lo - diff*0.272;
+    }
+    const mid = (entryLo+entryHi)/2;
+    const risk = Math.abs(mid-stop), reward = Math.abs(tp2-mid);
+    const rr = risk>0 ? +(reward/risk).toFixed(2) : 0;
+    setup = {
+      direction: dir,
+      entryLo:+entryLo.toFixed(2), entryHi:+entryHi.toFixed(2),
+      stop:+stop.toFixed(2),
+      tp1:+tp1.toFixed(2), tp2:+tp2.toFixed(2), tp3:+tp3.toFixed(2),
+      riskPct:+(risk/mid*100).toFixed(2),
+      rewardPct:+(reward/mid*100).toFixed(2),
+      rr,
+    };
+  }
+  return {
+    trend, swingHigh:hi, swingLow:lo, current:cur,
+    swingHighDate: win[hiIdx].date, swingLowDate: win[loIdx].date,
+    levels, nearest, nearKey, signals:sigs, score,
+    isAlert: nearKey && score >= ALERT_THRESHOLD,
+    setup,
+  };
+}
+const $ = id => document.getElementById(id);
+function fmt(n,d=2){return Number(n).toLocaleString('en',{minimumFractionDigits:d, maximumFractionDigits:d})}
+function render(symbol, r){
+  const v = r.isAlert ? 'alert' : (r.nearKey ? 'watch' : 'neutral');
+  const vText = r.isAlert ? `🚨 警示訊號  ${r.score}/4`
+              : r.nearKey ? `👁 觀察中  ${r.score}/4`
+              : `— 暫無訊號  ${r.score}/4`;
+  let html = `
+    <div class="verdict ${v}">${vText}</div>
+    <div class="card">
+      <div class="card-title">${symbol} 波段資訊</div>
+      <div class="kv"><span class="k">波段方向</span><span class="v">${r.trend==='up'?'📈 上升(找支撐)':'📉 下降(找壓力)'}</span></div>
+      <div class="kv"><span class="k">波段高點</span><span class="v">${fmt(r.swingHigh)} <span style="color:var(--text-dim);font-size:11px">(${r.swingHighDate})</span></span></div>
+      <div class="kv"><span class="k">波段低點</span><span class="v">${fmt(r.swingLow)} <span style="color:var(--text-dim);font-size:11px">(${r.swingLowDate})</span></span></div>
+      <div class="kv"><span class="k">目前股價</span><span class="v" style="font-size:18px">${fmt(r.current)}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Fib 位階</div>
+      <table class="fib-table">
+        <thead><tr><th>比率</th><th>價格</th><th>距現價</th></tr></thead>
+        <tbody>
+          ${r.levels.map(l=>{
+            const isNearest = l.ratio===r.nearest.ratio;
+            const cls = (l.isKey?'key ':'')+(isNearest?'nearest':'');
+            const distCls = l.distPct>=0 ? 'dist-pos':'dist-neg';
+            return `<tr class="${cls}"><td>${l.ratio.toFixed(3)}${l.isKey?' ★':''}</td><td>${fmt(l.price)}</td><td class="${distCls}">${l.distPct>=0?'+':''}${fmt(l.distPct)}%</td></tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">確認訊號 <span class="score s${r.score}">${r.score}/4</span></div>
+      ${r.signals.map(s=>`
+        <div class="sig ${s.on?'on':''}">
+          <span class="sig-icon">${s.on?'✅':'⬜'}</span>
+          <div class="sig-body">
+            <div class="sig-name">${s.name}</div>
+            ${s.detail?`<div class="sig-detail">${s.detail}</div>`:''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  if(r.setup){
+    const s = r.setup;
+    html += `
+      <div class="card">
+        <div class="card-title">進出場規劃</div>
+        <div class="rr-banner">
+          <span class="dir ${s.direction}">${s.direction==='long'?'📈 做 多':'📉 做 空'}</span>
+          <span class="rr">風報比 1 : ${s.rr}</span>
+        </div>
+        <div class="setup-grid">
+          <div class="setup-row"><span class="lbl">🎯 進場區</span><span class="val">${fmt(s.entryLo)} ~ ${fmt(s.entryHi)}</span></div>
+          <div class="setup-row stop"><span class="lbl">🛑 停 損</span><span class="val">${fmt(s.stop)}<span class="sub">風險 ${fmt(s.riskPct)}%</span></span></div>
+          <div class="setup-row tp"><span class="lbl">✅ TP1 短線</span><span class="val">${fmt(s.tp1)}</span></div>
+          <div class="setup-row tp"><span class="lbl">✅ TP2 主目標</span><span class="val">${fmt(s.tp2)}<span class="sub">報酬 ${fmt(s.rewardPct)}%</span></span></div>
+          <div class="setup-row tp"><span class="lbl">🚀 TP3 延伸</span><span class="val">${fmt(s.tp3)}</span></div>
+        </div>
+        <div class="notes">
+          💡 <b>分批策略</b>:TP1 減倉 50% 鎖利、TP2 減倉 30%、TP3 留 20% 跑趨勢。<br>
+          ⚠️ 觸及停損務必嚴格執行,不加碼攤平。
+          ${!r.isAlert ? `<br><br>⚠️ 目前確認訊號僅 ${r.score}/4,建議觀察至 ≥2 再進場。` : ''}
+        </div>
+      </div>
+    `;
+  }
+  $('result').innerHTML = html;
+  $('result').style.display = 'block';
+  $('result').scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => {
+    $('symbol').value = c.dataset.s;
+    $('goBtn').click();
+  });
+});
+$('goBtn').addEventListener('click', async () => {
+  const symbol = $('symbol').value.trim();
+  if(!/^\d{4}$/.test(symbol)){
+    $('status').className='status error';
+    $('status').textContent='⚠️ 請輸入 4 碼台股代號';
+    return;
+  }
+  if(!getToken()){
+    $('status').className='status error';
+    $('status').textContent='⚠️ 請先設定 FinMind Token(下方展開設定)';
+    document.getElementById('tokenBox').open = true;
+    return;
+  }
+  $('goBtn').disabled = true;
+  $('result').style.display='none';
+  $('status').className='status';
+  $('status').innerHTML='<span class="spinner"></span>正在抓取台股資料...';
+  try{
+    const rows = await fetchFinMind(symbol);
+    if(rows.length<60) throw new Error(`資料不足(只取得 ${rows.length} 筆)`);
+    $('status').innerHTML='<span class="spinner"></span>分析中...';
+    await new Promise(r=>setTimeout(r,150));
+    const result = analyze(rows);
+    $('status').textContent='';
+    render(symbol, result);
+  }catch(e){
+    $('status').className='status error';
+    $('status').textContent='❌ ' + e.message;
+    console.error(e);
+  }finally{
+    $('goBtn').disabled = false;
+  }
+});
+document.getElementById('saveToken').addEventListener('click', () => {
+  const t = document.getElementById('tokenInput').value.trim();
+  if(!t){ alert('請貼上 token'); return; }
+  setToken(t);
+  document.getElementById('tokenInput').value = '';
+  updateTokenStatus();
+  $('status').className='status';
+  $('status').textContent='✅ Token 已儲存,可以開始分析了';
+});
+document.getElementById('clearToken').addEventListener('click', () => {
+  if(!confirm('確定清除已儲存的 token?')) return;
+  clearTokenFn();
+  updateTokenStatus();
+});
+updateTokenStatus();
+if(!getToken()) document.getElementById('tokenBox').open = true;
+$('symbol').addEventListener('keydown', e => {
+  if(e.key === 'Enter') $('goBtn').click();
+});
+</script>
+</body>
+</html>
