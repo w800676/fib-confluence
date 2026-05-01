@@ -232,7 +232,7 @@ footer a{color:var(--gold-dim)}
 <script>
 const FIB_RATIOS = [0.236, 0.382, 0.5, 0.618, 0.786];
 const KEY_LEVELS = new Set([0.382, 0.5, 0.618]);
-const LOOKBACK = 120;
+const LOOKBACK = 90;
 const PROXIMITY_PCT = 1.5;
 const MA_CONFLUENCE_PCT = 2.0;
 const ALERT_THRESHOLD = 2;
@@ -256,7 +256,7 @@ async function fetchFinMind(symbol){
   if(!token) throw new Error('請先設定 FinMind token');
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - 8);
+  startDate.setMonth(startDate.getMonth() - 4）;
   const fmt = d => d.toISOString().slice(0,10);
   const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${symbol}&start_date=${fmt(startDate)}&end_date=${fmt(endDate)}&token=${encodeURIComponent(token)}`;
   const res = await fetch(url);
